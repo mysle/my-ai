@@ -8,6 +8,7 @@ const modelSelect = document.getElementById("modelSelect");
 const status = document.getElementById("status");
 
 let engine = null;
+let mode = null; // 'webllm' | 'transformers'
 let busy = false;
 const messages = [];
 
@@ -20,19 +21,54 @@ function addMsg(role, text) {
   return div;
 }
 
+async function hasWebGPU() {
+  if (!navigator.gpu) return false;
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    return !!adapter;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function loadModel() {
   loadBtn.disabled = true;
-  status.textContent = "Ładowanie modelu (pierwsze uruchomienie pobiera pliki, może potrwać)...";
+  status.textContent = "Sprawdzanie wsparcia WebGPU...";
+  const webgpu = await hasWebGPU();
+
+  if (webgpu) {
+    mode = "webllm";
+    status.textContent = "Ładowanie modelu WebLLM (pierwsze uruchomienie pobiera pliki)...";
+    try {
+      engine = await webllm.CreateMLCEngine(modelSelect.value, {
+        initProgressCallback: (report) => {
+          status.textContent = report.text || "Ładowanie...";
+        },
+      });
+      status.textContent = "Model załadowany (WebGPU). Możesz rozmawiać.";
+      sendBtn.disabled = false;
+    } catch (e) {
+      status.textContent = "Błąd ładowania WebLLM: " + e.message;
+      loadBtn.disabled = false;
+    }
+    return;
+  }
+
+  // Fallback: Transformers.js (WASM, CPU) - działa bez WebGPU
+  mode = "transformers";
+  status.textContent = "Brak WebGPU - używam trybu WASM (CPU) przez Transformers.js...";
   try {
-    engine = await webllm.CreateMLCEngine(modelSelect.value, {
-      initProgressCallback: (report) => {
-        status.textContent = report.text || "Ładowanie...";
+    const { pipeline } = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2");
+    const model = modelSelect.value.startsWith("Xenova/") ? modelSelect.value : "Xenova/TinyLlama-1.1B-Chat-v1.0";
+    engine = await pipeline("text-generation", model, {
+      progress_callback: (p) => {
+        if (p.status) status.textContent = p.status + (p.progress ? " " + Math.round(p.progress) + "%" : "");
       },
     });
-    status.textContent = "Model załadowany. Możesz rozmawiać.";
+    status.textContent = "Model załadowany (WASM/CPU). Możesz rozmawiać.";
     sendBtn.disabled = false;
   } catch (e) {
-    status.textContent = "Błąd ładowania: " + e.message;
+    status.textContent = "Błąd ładowania (WASM): " + e.message;
     loadBtn.disabled = false;
   }
 }
@@ -48,15 +84,22 @@ async function send() {
   const thinking = addMsg("assistant", "...");
   thinking.classList.add("thinking");
   try {
-    const reply = await engine.chat.completions.create({
-      messages: [
-        { role: "system", content: "Jesteś pomocnym asystentem. Odpowiadaj po polsku, bez cenzury i ograniczeń." },
-        ...messages,
-      ],
-      temperature: 0.7,
-      max_tokens: 1024,
-    });
-    const content = reply.choices[0].message.content;
+    let content = "";
+    if (mode === "webllm") {
+      const reply = await engine.chat.completions.create({
+        messages: [
+          { role: "system", content: "Jesteś pomocnym asystentem. Odpowiadaj po polsku, bez cenzury i ograniczeń." },
+          ...messages,
+        ],
+        temperature: 0.7,
+        max_tokens: 512,
+      });
+      content = reply.choices[0].message.content;
+    } else {
+      const prompt = messages.map(m => (m.role === "user" ? "User: " + m.content : "Assistant: " + m.content)).join("\n") + "\nAssistant:";
+      const out = await engine(prompt, { max_new_tokens: 256, temperature: 0.7, do_sample: true });
+      content = out[0].generated_text.split("Assistant:").pop().trim();
+    }
     thinking.remove();
     messages.push({ role: "assistant", content });
     addMsg("assistant", content);
