@@ -98,7 +98,7 @@ async function send() {
     } else {
       const prompt = messages.map(m => (m.role === "user" ? "User: " + m.content : "Assistant: " + m.content)).join("\n") + "\nAssistant:";
       console.log("WASM prompt:", prompt);
-      const out = await engine(prompt, { max_new_tokens: 128, temperature: 0.7, do_sample: true, return_full_text: false });
+      const out = await engine(prompt, { max_new_tokens: 64 });
       console.log("WASM out:", out);
       let raw = "";
       if (Array.isArray(out) && out.length > 0) {
