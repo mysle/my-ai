@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My AI Chat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>My AI Chat</h1>
+      <div class="controls">
+        <select id="modelSelect">
+          <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (szybki)</option>
+          <option value="Mistral-7B-Instruct-v0.3-q4f16_1-MLC">Mistral 7B (mocniejszy)</option>
+        </select>
+        <button id="loadBtn">Załaduj model</button>
+      </div>
+      <div id="status">Wybierz model i kliknij "Załaduj model".</div>
+    </header>
+    <main id="chat"></main>
+    <footer>
+      <textarea id="input" placeholder="Napisz wiadomość..." rows="2"></textarea>
+      <button id="sendBtn">Wyślij</button>
+    </footer>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

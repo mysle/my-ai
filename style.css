@@ -1,0 +1,19 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #0f1115; color: #e6e6e6; }
+.app { max-width: 900px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+header { padding: 1rem; border-bottom: 1px solid #2a2d35; }
+header h1 { margin: 0 0 .5rem; font-size: 1.2rem; }
+.controls { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.controls select, .controls button { padding: .5rem .75rem; border-radius: 8px; border: 1px solid #2a2d35; background: #1a1d24; color: #e6e6e6; }
+.controls button { cursor: pointer; background: #3b82f6; border: none; }
+.controls button:disabled { opacity: .5; cursor: not-allowed; }
+#status { margin-top: .5rem; font-size: .85rem; color: #9ca3af; }
+main { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
+.msg { max-width: 80%; padding: .75rem 1rem; border-radius: 12px; white-space: pre-wrap; word-wrap: break-word; }
+.msg.user { align-self: flex-end; background: #3b82f6; }
+.msg.assistant { align-self: flex-start; background: #1a1d24; border: 1px solid #2a2d35; }
+.msg.thinking { opacity: .6; font-style: italic; }
+footer { display: flex; gap: .5rem; padding: 1rem; border-top: 1px solid #2a2d35; }
+footer textarea { flex: 1; padding: .75rem; border-radius: 8px; border: 1px solid #2a2d35; background: #1a1d24; color: #e6e6e6; resize: none; font-family: inherit; }
+footer button { padding: .75rem 1.25rem; border-radius: 8px; border: none; background: #3b82f6; color: #fff; cursor: pointer; }
+footer button:disabled { opacity: .5; cursor: not-allowed; }
