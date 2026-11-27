@@ -59,7 +59,7 @@ async function loadModel() {
   status.textContent = "Brak WebGPU - używam trybu WASM (CPU) przez Transformers.js...";
   try {
     const { pipeline } = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2");
-    const model = modelSelect.value.startsWith("Xenova/") ? modelSelect.value : "Xenova/TinyLlama-1.1B-Chat-v1.0";
+    const model = modelSelect.value.startsWith("Xenova/") ? modelSelect.value : "Xenova/distilgpt2";
     engine = await pipeline("text-generation", model, {
       progress_callback: (p) => {
         if (p.status) status.textContent = p.status + (p.progress ? " " + Math.round(p.progress) + "%" : "");
