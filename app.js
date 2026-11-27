@@ -97,8 +97,17 @@ async function send() {
       content = reply.choices[0].message.content;
     } else {
       const prompt = messages.map(m => (m.role === "user" ? "User: " + m.content : "Assistant: " + m.content)).join("\n") + "\nAssistant:";
-      const out = await engine(prompt, { max_new_tokens: 256, temperature: 0.7, do_sample: true });
-      content = out[0].generated_text.split("Assistant:").pop().trim();
+      console.log("WASM prompt:", prompt);
+      const out = await engine(prompt, { max_new_tokens: 128, temperature: 0.7, do_sample: true, return_full_text: false });
+      console.log("WASM out:", out);
+      let raw = "";
+      if (Array.isArray(out) && out.length > 0) {
+        raw = (out[0].generated_text || out[0].text || "").toString();
+      } else if (out && typeof out === "object") {
+        raw = (out.generated_text || out.text || JSON.stringify(out)).toString();
+      }
+      content = raw.replace(/^Assistant:\s*/i, "").trim();
+      if (!content) content = "(brak odpowiedzi)";
     }
     thinking.remove();
     messages.push({ role: "assistant", content });
