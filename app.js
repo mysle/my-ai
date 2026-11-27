@@ -33,6 +33,7 @@ async function hasWebGPU() {
 
 async function loadModel() {
   loadBtn.disabled = true;
+  sendBtn.disabled = true;
   status.textContent = "Sprawdzanie wsparcia WebGPU...";
   const webgpu = await hasWebGPU();
 
@@ -54,7 +55,6 @@ async function loadModel() {
     return;
   }
 
-  // Fallback: Transformers.js (WASM, CPU) - działa bez WebGPU
   mode = "transformers";
   status.textContent = "Brak WebGPU - używam trybu WASM (CPU) przez Transformers.js...";
   try {
@@ -71,6 +71,25 @@ async function loadModel() {
     status.textContent = "Błąd ładowania (WASM): " + e.message;
     loadBtn.disabled = false;
   }
+}
+
+function buildWasmPrompt() {
+  const model = modelSelect.value;
+  if (model.includes("TinyLlama")) {
+    let p = "<|system|>\nJesteś pomocnym asystentem. Odpowiadaj po polsku.\n";
+    for (const m of messages) {
+      p += m.role === "user" ? `<|user|>\n${m.content}\n` : `<|assistant|>\n${m.content}\n`;
+    }
+    p += "<|assistant|>\n";
+    return p;
+  }
+  // distilgpt2 / phi-2 style
+  let p = "The following is a conversation between a helpful assistant and a user. The assistant answers in Polish.\n\n";
+  for (const m of messages) {
+    p += m.role === "user" ? `User: ${m.content}\n` : `Assistant: ${m.content}\n`;
+  }
+  p += "Assistant:";
+  return p;
 }
 
 async function send() {
@@ -96,17 +115,19 @@ async function send() {
       });
       content = reply.choices[0].message.content;
     } else {
-      const prompt = messages.map(m => (m.role === "user" ? "User: " + m.content : "Assistant: " + m.content)).join("\n") + "\nAssistant:";
-      console.log("WASM prompt:", prompt);
-      const out = await engine(prompt, { max_new_tokens: 64 });
-      console.log("WASM out:", out);
+      const prompt = buildWasmPrompt();
+      const out = await engine(prompt, { max_new_tokens: 128, do_sample: false });
       let raw = "";
       if (Array.isArray(out) && out.length > 0) {
         raw = (out[0].generated_text || out[0].text || "").toString();
       } else if (out && typeof out === "object") {
         raw = (out.generated_text || out.text || JSON.stringify(out)).toString();
       }
+      // remove prompt echo
+      if (raw.startsWith(prompt)) raw = raw.slice(prompt.length);
       content = raw.replace(/^Assistant:\s*/i, "").trim();
+      // stop at next user turn
+      content = content.split(/User:/)[0].trim();
       if (!content) content = "(brak odpowiedzi)";
     }
     thinking.remove();
